@@ -81,13 +81,9 @@
             runHook preInstall
 
             # --- Basic Setup ---
-            mkdir -p $out/bin
-            mkdir -p $out/opt/xmcl
+            mkdir -p $out/{bin,opt/xmcl,share/{applications,icons/hicolor,fontconfig/conf.d}}
             cp -r ./* $out/opt/xmcl/
             chmod +x $out/opt/xmcl/xmcl
-
-            # --- Resources Setup ---
-            mkdir -p $out/share/{applications,icons/hicolor,fontconfig/conf.d}
 
             # Font configuration
             if [ -f "${./assets/fonts.conf}" ]; then
@@ -98,13 +94,7 @@
 
             # --- Icons Setup ---
             if [ -d "${./assets/icons/hicolor}" ]; then
-              for size in 16 24 32 48 64 128 256 512; do
-                icon_path="${./assets/icons}/hicolor/''${size}x''${size}/apps/xmcl.png"
-                if [ -f "$icon_path" ]; then
-                  mkdir -p "$out/share/icons/hicolor/''${size}x''${size}/apps"
-                  cp "$icon_path" "$out/share/icons/hicolor/''${size}x''${size}/apps/xmcl.png"
-                fi
-              done
+              cp -r ${./assets/icons/hicolor}/* $out/share/icons/hicolor/
             fi
 
             # --- Wrapper Setup ---
@@ -113,17 +103,22 @@
               --set FONTCONFIG_PATH "$out/share/fontconfig" \
               --set FONTCONFIG_FILE "$out/share/fontconfig/conf.d/10-xmcl-fonts.conf" \
               --set GTK_USE_PORTAL 1 \
-              --set ELECTRON_NO_UPDATER 1 \
-              --set XMCL_NO_SELF_UPDATE 1 \
-              --set ELECTRON_RUN_AS_NODE "" \
+              --set APPIMAGE 1 \
               --unset JAVA_HOME \
-              --add-flags "--no-update-check"
+              ${
+                pkgs.lib.optionalString (builtins.getEnv "XDG_SESSION_TYPE" == "wayland") ''
+                  --add-flags "--enable-features=UseOzonePlatform" \
+                  --add-flags "--ozone-platform=wayland"
+                ''
+              } \
+              --add-flags "--enable-webrtc-pipewire-capturer"
 
             # --- Desktop Entry Setup ---
             if [ -f "${./assets/xmcl.desktop}" ]; then
               cp ${./assets/xmcl.desktop} $out/share/applications/xmcl.desktop
-              sed -i "s|^Exec=.*|Exec=$out/bin/xmcl|" $out/share/applications/xmcl.desktop
-              sed -i "s|^Icon=.*|Icon=xmcl|" $out/share/applications/xmcl.desktop
+              substituteInPlace $out/share/applications/xmcl.desktop \
+                --replace "Exec=xmcl" "Exec=$out/bin/xmcl" \
+                --replace "Icon=xmcl" "Icon=xmcl"
             fi
 
             runHook postInstall
