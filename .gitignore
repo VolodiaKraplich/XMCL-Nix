@@ -1,0 +1,15 @@
+# Nix build outputs
+result
+result-*
+
+# Nix directory
+.direnv/
+.envrc
+
+# Common system files
+.DS_Store
+
+# Editor directories
+.vscode/
+.idea/
+.zed/
