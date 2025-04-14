@@ -73,9 +73,14 @@
           nativeBuildInputs = with pkgs; [
             autoPatchelfHook
             makeWrapper
+            hicolor-icon-theme
+            gtk3
           ];
 
-          buildInputs = runtimeDeps;
+          buildInputs = runtimeDeps ++ (with pkgs; [
+            hicolor-icon-theme
+            gtk3
+          ]);
 
           installPhase = ''
             runHook preInstall
@@ -94,7 +99,14 @@
 
             # --- Icons Setup ---
             if [ -d "${./assets/icons/hicolor}" ]; then
-              cp -r ${./assets/icons/hicolor}/* $out/share/icons/hicolor/
+              for size in 16 32 48 64 128 256 512; do
+                if [ -f "${./assets/icons/hicolor}/''${size}x''${size}/apps/xmcl.png" ]; then
+                  mkdir -p "$out/share/icons/hicolor/''${size}x''${size}/apps"
+                  cp "${./assets/icons/hicolor}/''${size}x''${size}/apps/xmcl.png" \
+                     "$out/share/icons/hicolor/''${size}x''${size}/apps/"
+                  chmod 644 "$out/share/icons/hicolor/''${size}x''${size}/apps/xmcl.png"
+                fi
+              done
             fi
 
             # --- Wrapper Setup ---
@@ -115,10 +127,12 @@
 
             # --- Desktop Entry Setup ---
             if [ -f "${./assets/xmcl.desktop}" ]; then
-              cp ${./assets/xmcl.desktop} $out/share/applications/xmcl.desktop
-              substituteInPlace $out/share/applications/xmcl.desktop \
+              mkdir -p "$out/share/applications"
+              cp ${./assets/xmcl.desktop} "$out/share/applications/xmcl.desktop"
+              chmod 644 "$out/share/applications/xmcl.desktop"
+              substituteInPlace "$out/share/applications/xmcl.desktop" \
                 --replace "Exec=xmcl" "Exec=$out/bin/xmcl" \
-                --replace "Icon=xmcl" "Icon=xmcl"
+                --replace "Icon=xmcl" "Icon=$out/share/icons/hicolor/512x512/apps/xmcl.png"
             fi
 
             runHook postInstall
