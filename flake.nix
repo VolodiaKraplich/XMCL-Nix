@@ -19,45 +19,47 @@
 
         # --- Version ---
         xmclVersion = "0.49.3";
+        sha256 = "562df63d78308ee0a9223baf150e13a008aa7627475a4fe8e010fd7426110e00";
 
         # --- Dependencies ---
+        # Libraries needed by the pre-built XMCL binary at runtime
         runtimeDeps = with pkgs; [
-          stdenv.cc.cc.lib
-          alsa-lib
-          atk
-          cairo
-          cups
-          dbus
-          expat
-          gdk-pixbuf
-          glib
-          gobject-introspection
-          gtk3
-          freetype
-          fontconfig
-          libdrm
-          libGL
-          libglvnd
-          mesa
-          xorg.libxcb
-          xorg.libxshmfence
-          nss
-          nspr
-          pango
-          udev
-          vulkan-loader
-          xorg.libX11
-          xorg.libXcomposite
-          xorg.libXcursor
-          xorg.libXdamage
-          xorg.libXext
-          xorg.libXfixes
-          xorg.libXi
-          xorg.libXrandr
-          xorg.libXrender
-          xorg.libXtst
-          xorg.libxcb
-          xorg.libXxf86vm
+          stdenv.cc.cc.lib # Essential C++ runtime
+          alsa-lib # Audio
+          atk # Accessibility
+          cairo # Graphics
+          dbus # Inter-process communication
+          expat # XML parsing
+          fontconfig # Font management
+          freetype # Font rendering
+          gdk-pixbuf # Image loading
+          glib # Core libraries
+          gobject-introspection # Object system introspection
+          gtk3 # GUI Toolkit
+          hicolor-icon-theme # Standard icon theme infrastructure
+          libdrm # Direct Rendering Manager
+          libGL # OpenGL
+          libglvnd # OpenGL vendor-neutral dispatch
+          mesa # OpenGL implementation
+          nspr # Netscape Portable Runtime
+          nss # Network Security Services
+          pango # Text layout
+          udev # Device management
+          vulkan-loader # Vulkan support
+          xorg.libX11 # X11 core
+          xorg.libXcomposite # X11 compositing
+          xorg.libXcursor # X11 cursors
+          xorg.libXdamage # X11 damage reporting
+          xorg.libXext # X11 extensions
+          xorg.libXfixes # X11 fixes extension
+          xorg.libXi # X11 input extension
+          xorg.libXrandr # X11 RandR extension (screen config)
+          xorg.libXrender # X11 rendering extension
+          xorg.libXScrnSaver # X11 screen saver extension
+          xorg.libxshmfence # X11 shared memory fences
+          xorg.libXtst # X11 test extension (automation, etc.)
+          xorg.libxcb # X protocol C binding
+          xorg.libXxf86vm # XFree86 Video Mode extension
         ];
       in
       {
@@ -67,49 +69,58 @@
 
           src = pkgs.fetchurl {
             url = "https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${xmclVersion}/xmcl-${xmclVersion}-x64.tar.xz";
-            sha256 = "562df63d78308ee0a9223baf150e13a008aa7627475a4fe8e010fd7426110e00";
+            sha256 = sha256;
           };
 
+          # Tools needed during the build process itself
           nativeBuildInputs = with pkgs; [
-            autoPatchelfHook
-            makeWrapper
-            hicolor-icon-theme
-            gtk3
+            autoPatchelfHook # Automatically patches ELF binaries/libraries
+            makeWrapper # Creates wrapper scripts
           ];
 
-          buildInputs = runtimeDeps ++ (with pkgs; [
-            hicolor-icon-theme
-            gtk3
-          ]);
+          # Libraries needed for autoPatchelfHook to find and link against
+          # These are typically the same as runtime dependencies
+          buildInputs = runtimeDeps;
 
           installPhase = ''
             runHook preInstall
 
             # --- Basic Setup ---
-            mkdir -p $out/{bin,opt/xmcl,share/{applications,icons/hicolor,fontconfig/conf.d}}
+            # Create necessary directories
+            mkdir -p $out/bin $out/opt/xmcl $out/share/applications $out/share/icons/hicolor $out/share/fontconfig/conf.d
+
+            # Copy unpacked application files
             cp -r ./* $out/opt/xmcl/
+
+            # Ensure the main binary is executable
             chmod +x $out/opt/xmcl/xmcl
 
-            # Font configuration
-            if [ -f "${./assets/fonts.conf}" ]; then
-              cp ${./assets/fonts.conf} $out/share/fontconfig/conf.d/10-xmcl-fonts.conf
-            else
-              touch $out/share/fontconfig/conf.d/10-xmcl-fonts.conf
-            fi
+            # --- Font Configuration ---
+            # Assuming fonts.conf exists relative to flake.nix
+            # If it's optional or located elsewhere, adjust this path
+            cp ${./assets/fonts.conf} $out/share/fontconfig/conf.d/10-xmcl-fonts.conf
 
             # --- Icons Setup ---
+            # Check if the standard icons directory exists in assets
             if [ -d "${./assets/icons/hicolor}" ]; then
+              # Loop through standard sizes and copy if the specific icon exists
               for size in 16 32 48 64 128 256 512; do
-                if [ -f "${./assets/icons/hicolor}/''${size}x''${size}/apps/xmcl.png" ]; then
+                icon_file="${./assets/icons/hicolor}/''${size}x''${size}/apps/xmcl.png"
+                if [ -f "$icon_file" ]; then
                   mkdir -p "$out/share/icons/hicolor/''${size}x''${size}/apps"
-                  cp "${./assets/icons/hicolor}/''${size}x''${size}/apps/xmcl.png" \
-                     "$out/share/icons/hicolor/''${size}x''${size}/apps/"
+                  cp "$icon_file" "$out/share/icons/hicolor/''${size}x''${size}/apps/"
                   chmod 644 "$out/share/icons/hicolor/''${size}x''${size}/apps/xmcl.png"
                 fi
               done
+              # Update icon cache if gtk3 is available
+              # gtk-update-icon-cache $out/share/icons/hicolor || true # Might need gtk3 in nativeBuildInputs if explicitly run
+            else
+              echo "Warning: Icon directory ${./assets/icons/hicolor} not found. Skipping icon installation."
             fi
 
+
             # --- Wrapper Setup ---
+            # Create a wrapper script in $out/bin
             makeWrapper $out/opt/xmcl/xmcl $out/bin/xmcl \
               --prefix LD_LIBRARY_PATH : ${pkgs.lib.makeLibraryPath runtimeDeps} \
               --set FONTCONFIG_PATH "$out/share/fontconfig" \
@@ -117,25 +128,25 @@
               --set GTK_USE_PORTAL 1 \
               --set APPIMAGE 1 \
               --unset JAVA_HOME \
-              ${
-                pkgs.lib.optionalString (builtins.getEnv "XDG_SESSION_TYPE" == "wayland") ''
-                  --add-flags "--enable-features=UseOzonePlatform" \
-                  --add-flags "--ozone-platform=wayland"
-                ''
-              } \
               --add-flags "--enable-webrtc-pipewire-capturer"
 
             # --- Desktop Entry Setup ---
-            if [ -f "${./assets/xmcl.desktop}" ]; then
-              mkdir -p "$out/share/applications"
-              cp ${./assets/xmcl.desktop} "$out/share/applications/xmcl.desktop"
-              chmod 644 "$out/share/applications/xmcl.desktop"
-              substituteInPlace "$out/share/applications/xmcl.desktop" \
-                --replace "Exec=xmcl" "Exec=$out/bin/xmcl" \
-                --replace "Icon=xmcl" "Icon=$out/share/icons/hicolor/512x512/apps/xmcl.png"
-            fi
+            # Assuming xmcl.desktop exists relative to flake.nix
+            cp ${./assets/xmcl.desktop} $out/share/applications/xmcl.desktop
+            chmod 644 $out/share/applications/xmcl.desktop
+
+            # Substitute placeholder paths in the desktop file
+            substituteInPlace $out/share/applications/xmcl.desktop \
+              --replace "Exec=xmcl" "Exec=$out/bin/xmcl" \
+              --replace "Icon=xmcl" "Icon=xmcl" # Use generic icon name, DE will find the best size
 
             runHook postInstall
+          '';
+
+          # Requires adding 'patchelf' to nativeBuildInputs
+          installCheckPhase = ''
+            # Check if the binary links correctly
+            ldd $out/bin/xmcl | grep "not found" && exit 1 || exit 0
           '';
 
           meta = with pkgs.lib; {
@@ -143,14 +154,26 @@
             homepage = "https://github.com/Voxelum/x-minecraft-launcher";
             license = licenses.mit;
             platforms = [ "x86_64-linux" ];
-            maintainers = [
+            maintainers = with maintainers; [
               "CI010"
               "Volodia Kraplich"
             ];
+            sourceProvenance = with sourceTypes; [ binaryNativeCode ];
           };
         };
 
+        # Provide xmcl as the default package for `nix build .`
         packages.default = self.packages.${system}.xmcl;
+
+        # Dev shell for working on the flake
+        devShells.default = pkgs.mkShell {
+          name = "xmcl-dev-shell";
+          packages = with pkgs; [
+            # Tools useful for development/debugging this flake
+            nixpkgs-fmt # Formatter
+            patchelf # For inspecting ELF files
+          ];
+        };
       }
     );
 }
