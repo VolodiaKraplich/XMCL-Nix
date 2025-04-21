@@ -22,7 +22,6 @@
         sha256 = "23b428db8ff2c3f7374b24769786b6da33d15c8b469fddbc2ec574021eea946a";
 
         # --- Dependencies ---
-        # Libraries needed by the pre-built XMCL binary at runtime
         runtimeDeps = with pkgs; [
           stdenv.cc.cc.lib # Essential C++ runtime
           alsa-lib # Audio
@@ -80,7 +79,6 @@
           ];
 
           # Libraries needed for autoPatchelfHook to find and link against
-          # These are typically the same as runtime dependencies
           buildInputs = runtimeDeps;
 
           installPhase = ''
@@ -144,7 +142,6 @@
             runHook postInstall
           '';
 
-          # Requires adding 'patchelf' to nativeBuildInputs
           installCheckPhase = ''
             # Check if the binary links correctly
             ldd $out/bin/xmcl | grep "not found" && exit 1 || exit 0
@@ -170,11 +167,10 @@
         devShells.default = pkgs.mkShell {
           name = "xmcl-dev-shell";
           packages = with pkgs; [
-            # Tools useful for development/debugging this flake
             nixpkgs-fmt # Formatter
             patchelf # For inspecting ELF files
 
-            
+            #--- Update version ---
             python3 # Python 3 for scripts
             python3Packages.requests # HTTP library for Python
           ];
