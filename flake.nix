@@ -18,8 +18,8 @@
         pkgs = nixpkgs.legacyPackages.${system};
 
         # --- Version ---
-        xmclVersion = "0.49.3";
-        sha256 = "562df63d78308ee0a9223baf150e13a008aa7627475a4fe8e010fd7426110e00";
+        xmclVersion = "0.50.0";
+        sha256 = "23b428db8ff2c3f7374b24769786b6da33d15c8b469fddbc2ec574021eea946a";
 
         # --- Dependencies ---
         # Libraries needed by the pre-built XMCL binary at runtime
@@ -28,6 +28,7 @@
           alsa-lib # Audio
           atk # Accessibility
           cairo # Graphics
+          cups # Needeed for electron
           dbus # Inter-process communication
           expat # XML parsing
           fontconfig # Font management
@@ -172,6 +173,10 @@
             # Tools useful for development/debugging this flake
             nixpkgs-fmt # Formatter
             patchelf # For inspecting ELF files
+
+            
+            python3 # Python 3 for scripts
+            python3Packages.requests # HTTP library for Python
           ];
         };
       }

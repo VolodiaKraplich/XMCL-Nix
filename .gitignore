@@ -4,7 +4,6 @@ result-*
 
 # Nix directory
 .direnv/
-.envrc
 
 # Common system files
 .DS_Store
