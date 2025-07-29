@@ -18,8 +18,8 @@
         pkgs = nixpkgs.legacyPackages.${system};
 
         # --- Version ---
-        xmclVersion = "0.51.1";
-        sha256 = "574dcf9cbf320011644901787c710bf8705e3e1dfb4c39d020994d562d1564f6";
+        xmclVersion = "0.51.2";
+        sha256 = "2a7eb14e71386a8c707d673dea875d4d690bd1c11ed852aa2f19c0ed63972586";
 
         # --- Dependencies ---
         runtimeDeps = with pkgs; [
