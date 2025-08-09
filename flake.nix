@@ -18,8 +18,8 @@
         pkgs = nixpkgs.legacyPackages.${system};
 
         # --- Version ---
-        xmclVersion = "0.51.2";
-        sha256 = "2a7eb14e71386a8c707d673dea875d4d690bd1c11ed852aa2f19c0ed63972586";
+        xmclVersion = "0.51.4";
+        sha256 = "d4b66712d0033abd8516be03dc8e94e72919aef27c14c007405e0a71a9dc0aeb";
 
         # --- Dependencies ---
         runtimeDeps = with pkgs; [
@@ -171,8 +171,7 @@
             patchelf # For inspecting ELF files
 
             #--- Update version ---
-            python3 # Python 3 for scripts
-            python3Packages.requests # HTTP library for Python
+            go
           ];
         };
       }
